@@ -1,0 +1,39 @@
+########################################
+#  General
+########################################
+.DS_Store
+__pycache__/
+.ipynb_checkpoints/
+
+########################################
+#  Python virtual-envs / Pipenv / Poetry
+########################################
+.venv/
+.env/
+*.egg-info/
+
+########################################
+#  Datasets & model artifacts
+########################################
+# raw datasets
+ml/fruits360/
+tensorflow_datasets/
+# large SavedModel folders / checkpoints
+ml/food_model/
+*.pb
+*.ckpt
+*.index
+*.data*
+# (keep the small *.tflite file if it's <100 MB)
+
+########################################
+#  React-Native / Node
+########################################
+palsticAI/node_modules/
+palsticAI/android/.gradle/
+palsticAI/ios/Pods/
+
+
+.venv/
+/.venv # ignore the entire .venv/ directory
+/.venv
