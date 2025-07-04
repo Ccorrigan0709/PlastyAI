@@ -11,6 +11,8 @@ __pycache__/
 .venv/
 .env/
 *.egg-info/
+plasticai-server/venv311/
+plasticai-server/venv/
 
 ########################################
 #  Datasets & model artifacts
