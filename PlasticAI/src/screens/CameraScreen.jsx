@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Image } from 'react-native';
 import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
+import ApiService from '../services/api';
 
 const CameraScreen = ({ navigation }) => {
   const [capturedImage, setCapturedImage] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState(null);
 
   const handleOpenCamera = () => {
     Alert.alert(
@@ -71,23 +73,47 @@ const CameraScreen = ({ navigation }) => {
     });
   };
 
-  const analyzeImage = (imageUri) => {
+  const analyzeImage = async (imageUri) => {
     setIsAnalyzing(true);
+    setAnalysisResult(null);
     
-    // Simulate analysis time
-    setTimeout(() => {
-      setIsAnalyzing(false);
+    try {
+      // Convert image to base64
+      const imageBase64 = await ApiService.imageToBase64(imageUri);
       
-      // Generate random microplastics count for demo
-      const microplasticsCount = Math.floor(Math.random() * 15);
+      // Send to Flask API for analysis
+      const result = await ApiService.predictFood(imageBase64);
+      
+      setAnalysisResult(result);
+      
+      // Show results
+      const foodName = result.top_prediction.label;
+      const confidence = (result.top_prediction.confidence * 100).toFixed(1);
+      const microplasticsDetected = result.microplastics_detected.detected;
+      
+      let message = `Food detected: ${foodName}\nConfidence: ${confidence}%`;
+      
+      if (microplasticsDetected) {
+        const microConfidence = (result.microplastics_detected.confidence * 100).toFixed(1);
+        message += `\n\n⚠️ Microplastics detected!\nConfidence: ${microConfidence}%\nReason: ${result.microplastics_detected.reason}`;
+      } else {
+        message += '\n\n✅ No microplastics detected';
+      }
       
       Alert.alert(
         'Analysis Complete',
-        `Found ${microplasticsCount} microplastic particle${microplasticsCount !== 1 ? 's' : ''} in your food sample.`,
+        message,
         [
           {
+            text: 'View Details',
+            onPress: () => navigation.navigate('FoodDetail', { result }),
+          },
+          {
             text: 'Take Another Photo',
-            onPress: () => setCapturedImage(null),
+            onPress: () => {
+              setCapturedImage(null);
+              setAnalysisResult(null);
+            },
           },
           {
             text: 'OK',
@@ -95,7 +121,26 @@ const CameraScreen = ({ navigation }) => {
           }
         ]
       );
-    }, 3000);
+      
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      Alert.alert(
+        'Analysis Failed',
+        'Unable to analyze the image. Please check your internet connection and try again.',
+        [
+          {
+            text: 'Try Again',
+            onPress: () => analyzeImage(imageUri),
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          }
+        ]
+      );
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
@@ -119,6 +164,33 @@ const CameraScreen = ({ navigation }) => {
             {isAnalyzing && (
               <View style={styles.analyzingContainer}>
                 <Text style={styles.analyzingText}>🔍 Analyzing for microplastics...</Text>
+              </View>
+            )}
+            {analysisResult && !isAnalyzing && (
+              <View style={styles.resultContainer}>
+                <Text style={styles.resultTitle}>Analysis Results:</Text>
+                <Text style={styles.foodName}>
+                  {analysisResult.top_prediction.label}
+                </Text>
+                <Text style={styles.confidence}>
+                  Confidence: {(analysisResult.top_prediction.confidence * 100).toFixed(1)}%
+                </Text>
+                {analysisResult.microplastics_detected.detected ? (
+                  <View style={styles.microplasticsDetected}>
+                    <Text style={styles.microplasticsText}>
+                      ⚠️ Microplastics Detected
+                    </Text>
+                    <Text style={styles.microplasticsReason}>
+                      {analysisResult.microplastics_detected.reason}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.noMicroplastics}>
+                    <Text style={styles.noMicroplasticsText}>
+                      ✅ No Microplastics Detected
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
           </View>
@@ -235,6 +307,64 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     textAlign: 'center',
     fontWeight: '500',
+  },
+  resultContainer: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    alignItems: 'center',
+  },
+  resultTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  foodName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    marginBottom: 5,
+  },
+  confidence: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 10,
+  },
+  microplasticsDetected: {
+    backgroundColor: '#fff3cd',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ffeaa7',
+    alignItems: 'center',
+  },
+  microplasticsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#856404',
+    marginBottom: 5,
+  },
+  microplasticsReason: {
+    fontSize: 12,
+    color: '#856404',
+    textAlign: 'center',
+  },
+  noMicroplastics: {
+    backgroundColor: '#d4edda',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#c3e6cb',
+    alignItems: 'center',
+  },
+  noMicroplasticsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#155724',
   },
   instructionContainer: {
     flex: 1,
