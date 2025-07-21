@@ -9,6 +9,7 @@ import CameraScreen from '../screens/CameraScreen';
 import LogsScreen from '../screens/LogsScreen';
 import FoodDetailScreen from '../screens/FoodDetailScreen';
 import TrendsScreen from '../screens/TrendsScreen';
+import HealthTipsScreen from '../screens/HealthTipsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -61,6 +62,16 @@ const TabNavigator = () => {
           tabBarLabel: 'View Logs',
           tabBarIcon: ({ color, size }) => (
             <Text style={{ fontSize: size, color }}>📋</Text>
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="HealthTips" 
+        component={HealthTipsScreen}
+        options={{
+          tabBarLabel: 'Health Tips',
+          tabBarIcon: ({ color, size }) => (
+            <Text style={{ fontSize: size, color }}>⚕️</Text>
           ),
         }}
       />

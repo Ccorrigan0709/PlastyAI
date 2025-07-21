@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Image, ScrollView } from 'react-native';
 import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
 import ApiService from '../services/api';
+import { StorageService } from '../services/storage';
 
 const CameraScreen = ({ navigation }) => {
   const [capturedImage, setCapturedImage] = useState(null);
@@ -86,6 +87,22 @@ const CameraScreen = ({ navigation }) => {
       
       setAnalysisResult(result);
       
+      // Save the scan result to storage
+      const now = new Date();
+      console.log('CameraScreen: Current time when saving:', now.toISOString());
+      
+      const foodScanData = {
+        foodItem: result.top_prediction.label,
+        microplasticsCount: result.plasticizer_count || 0,
+        plasticizerCount: result.plasticizer_count || 0,
+        confidence: result.top_prediction.confidence,
+        microplasticsDetected: result.microplastics_detected.detected,
+        rawResult: result
+      };
+      
+      await StorageService.saveFoodScan(foodScanData);
+      console.log('CameraScreen: Saved scan data:', foodScanData);
+      
       // Show results
       const foodName = result.top_prediction.label;
       const confidence = (result.top_prediction.confidence * 100).toFixed(1);
@@ -106,7 +123,19 @@ const CameraScreen = ({ navigation }) => {
         [
           {
             text: 'View Details',
-            onPress: () => navigation.navigate('FoodDetail', { result }),
+            onPress: () => {
+              // Format the data for FoodDetail screen
+              const foodItem = {
+                foodItem: result.top_prediction.label,
+                microplasticsCount: result.plasticizer_count || 0, // Use new plasticizer_count field
+                date: new Date().toLocaleDateString(),
+                confidence: result.top_prediction.confidence,
+                microplasticsDetected: result.microplastics_detected.detected,
+                plasticizerCount: result.plasticizer_count || 0, // Add the new field
+                rawResult: result // Keep the full result for debugging
+              };
+              navigation.navigate('FoodDetail', { foodItem });
+            },
           },
           {
             text: 'Take Another Photo',
@@ -156,7 +185,7 @@ const CameraScreen = ({ navigation }) => {
       </View>
 
       {/* Main Content */}
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         {capturedImage ? (
           <View style={styles.imageContainer}>
             <Text style={styles.imageTitle}>Captured Image:</Text>
@@ -216,21 +245,23 @@ const CameraScreen = ({ navigation }) => {
         )}
 
         {/* Camera Button */}
-        <TouchableOpacity 
-          style={[styles.cameraButton, isAnalyzing && styles.disabledButton]} 
-          onPress={handleOpenCamera}
-          disabled={isAnalyzing}
-        >
-          <Text style={styles.cameraButtonIcon}>📸</Text>
-          <Text style={styles.cameraButtonText}>
-            {capturedImage ? 'Take Another Photo' : 'Open Camera'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity 
+            style={[styles.cameraButton, isAnalyzing && styles.disabledButton]} 
+            onPress={handleOpenCamera}
+            disabled={isAnalyzing}
+          >
+            <Text style={styles.cameraButtonIcon}>📸</Text>
+            <Text style={styles.cameraButtonText}>
+              {capturedImage ? 'Take Another Photo' : 'Open Camera'}
+            </Text>
+          </TouchableOpacity>
 
-        <Text style={styles.noteText}>
-          This will use your device's camera to capture and analyze food images
-        </Text>
-      </View>
+          <Text style={styles.noteText}>
+            This will use your device's camera to capture and analyze food images
+          </Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -272,27 +303,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   content: {
-    flex: 1,
+    flexGrow: 1, // Allow ScrollView to grow and take available space
     padding: 20,
     justifyContent: 'space-between',
   },
   imageContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingVertical: 20,
   },
   imageTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
     marginBottom: 15,
+    textAlign: 'center',
   },
   capturedImage: {
-    width: 250,
-    height: 250,
+    width: 280,
+    height: 280,
     borderRadius: 15,
     borderWidth: 2,
     borderColor: '#007AFF',
+    marginBottom: 20,
   },
   analyzingContainer: {
     marginTop: 20,
@@ -310,29 +344,34 @@ const styles = StyleSheet.create({
   },
   resultContainer: {
     marginTop: 20,
-    padding: 15,
+    padding: 20,
     backgroundColor: '#f8f9fa',
-    borderRadius: 10,
+    borderRadius: 15,
     borderWidth: 1,
     borderColor: '#dee2e6',
     alignItems: 'center',
+    width: '100%',
+    marginBottom: 20,
   },
   resultTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 10,
+    marginBottom: 15,
+    textAlign: 'center',
   },
   foodName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#007AFF',
-    marginBottom: 5,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   confidence: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#666',
-    marginBottom: 10,
+    marginBottom: 15,
+    textAlign: 'center',
   },
   microplasticsDetected: {
     backgroundColor: '#fff3cd',
@@ -403,11 +442,11 @@ const styles = StyleSheet.create({
   },
   cameraButton: {
     backgroundColor: '#007AFF',
-    paddingVertical: 5,
+    paddingVertical: 15,
     paddingHorizontal: 40,
     borderRadius: 15,
     alignItems: 'center',
-    marginVertical: 20,
+    marginBottom: 15,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -435,6 +474,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     marginBottom: 20,
+  },
+  buttonContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    marginTop: 20,
   },
 });
 

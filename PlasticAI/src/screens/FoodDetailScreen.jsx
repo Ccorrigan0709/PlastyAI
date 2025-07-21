@@ -18,38 +18,38 @@ const FoodDetailScreen = ({ route, navigation }) => {
   const generateDayBreakdown = (selectedFood) => {
     const breakdownOptions = {
       'Salmon Fillet': [
-        { food: 'Salmon Fillet', count: selectedFood.microplasticsCount, isSelected: true },
-        { food: 'Rice Side', count: 1, isSelected: false },
+        { food: 'Salmon Fillet', count: selectedFood.plasticizerCount || selectedFood.microplasticsCount, isSelected: true },
+        { food: 'Rice Side', count: 1000, isSelected: false },
         { food: 'Steamed Vegetables', count: 0, isSelected: false },
       ],
       'Tuna Sashimi': [
-        { food: 'Tuna Sashimi', count: selectedFood.microplasticsCount, isSelected: true },
-        { food: 'Soy Sauce', count: 1, isSelected: false },
+        { food: 'Tuna Sashimi', count: selectedFood.plasticizerCount || selectedFood.microplasticsCount, isSelected: true },
+        { food: 'Soy Sauce', count: 1000, isSelected: false },
         { food: 'Wasabi', count: 0, isSelected: false },
-        { food: 'Pickled Ginger', count: 1, isSelected: false },
+        { food: 'Pickled Ginger', count: 1000, isSelected: false },
       ],
       'Grilled Chicken': [
-        { food: 'Grilled Chicken', count: selectedFood.microplasticsCount, isSelected: true },
-        { food: 'Garden Salad', count: 1, isSelected: false },
-        { food: 'Bread Roll', count: 2, isSelected: false },
+        { food: 'Grilled Chicken', count: selectedFood.plasticizerCount || selectedFood.microplasticsCount, isSelected: true },
+        { food: 'Garden Salad', count: 1000, isSelected: false },
+        { food: 'Bread Roll', count: 2000, isSelected: false },
       ],
       'Sea Bass': [
-        { food: 'Sea Bass', count: selectedFood.microplasticsCount, isSelected: true },
-        { food: 'Lemon Butter Sauce', count: 1, isSelected: false },
-        { food: 'Roasted Potatoes', count: 1, isSelected: false },
+        { food: 'Sea Bass', count: selectedFood.plasticizerCount || selectedFood.microplasticsCount, isSelected: true },
+        { food: 'Lemon Butter Sauce', count: 1000, isSelected: false },
+        { food: 'Roasted Potatoes', count: 1000, isSelected: false },
         { food: 'Asparagus', count: 0, isSelected: false },
       ],
       'Shrimp Salad': [
-        { food: 'Shrimp Salad', count: selectedFood.microplasticsCount, isSelected: true },
-        { food: 'Mixed Greens', count: 2, isSelected: false },
-        { food: 'Dressing', count: 1, isSelected: false },
-        { food: 'Croutons', count: 1, isSelected: false },
+        { food: 'Shrimp Salad', count: selectedFood.plasticizerCount || selectedFood.microplasticsCount, isSelected: true },
+        { food: 'Mixed Greens', count: 2000, isSelected: false },
+        { food: 'Dressing', count: 1000, isSelected: false },
+        { food: 'Croutons', count: 1000, isSelected: false },
       ],
     };
 
     return breakdownOptions[selectedFood.foodItem] || [
-      { food: selectedFood.foodItem, count: selectedFood.microplasticsCount, isSelected: true },
-      { food: 'Side Dish', count: 1, isSelected: false },
+      { food: selectedFood.foodItem, count: selectedFood.plasticizerCount || selectedFood.microplasticsCount, isSelected: true },
+      { food: 'Side Dish', count: 1000, isSelected: false },
       { food: 'Beverage', count: 0, isSelected: false },
     ];
   };
@@ -184,7 +184,7 @@ const FoodDetailScreen = ({ route, navigation }) => {
     return (
       <View style={styles.dayBreakdownContainer}>
         <Text style={styles.dayBreakdownTitle}>
-          {foodItem.date} Daily Breakdown ({totalDayCount} total particles)
+          {foodItem.date} Daily Breakdown ({totalDayCount.toLocaleString()} total ng/serving)
         </Text>
         <View style={styles.horizontalChart}>
           {dayBreakdown.map((item, index) => {
@@ -242,7 +242,7 @@ const FoodDetailScreen = ({ route, navigation }) => {
                 { backgroundColor: foodInfo.color }
               ]} />
               <Text style={styles.contaminationText}>
-                {foodItem.microplasticsCount} particles - {foodInfo.riskLevel} Risk
+                {(foodItem.plasticizerCount || foodItem.microplasticsCount).toLocaleString()} ng/serving - {foodInfo.riskLevel} Risk
               </Text>
             </View>
           </View>

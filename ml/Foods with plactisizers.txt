@@ -1,0 +1,303 @@
+label	plasticizers_ng_per_serving
+apple_pie	50000
+baby_back_ribs	100000
+baklava	5000
+beef_carpaccio	100000
+beef_tartare	100000
+beet_salad	30000
+beignets	5000
+bibimbap	10000
+bread_pudding	5000
+breakfast_burrito	15000
+bruschetta	10000
+caesar_salad	30000
+cannoli	10000
+caprese_salad	30000
+carrot_cake	5000
+ceviche	10000
+cheesecake	5000
+cheese_plate	10000
+chicken_curry	100000
+chicken_quesadilla	100000
+chicken_wings	20000
+chocolate_cake	5000
+chocolate_mousse	10000
+churros	5000
+clam_chowder	1000
+club_sandwich	12000
+crab_cakes	5000
+creme_brulee	5000
+croque_madame	10000
+cup_cakes	5000
+deviled_eggs	5000
+donuts	5000
+dumplings	10000
+edamame	10000
+eggs_benedict	5000
+escargots	10000
+falafel	10000
+filet_mignon	10000
+fish_and_chips	1000
+foie_gras	10000
+french_fries	7000
+french_onion_soup	6000
+french_toast	5000
+fried_calamari	10000
+fried_rice	10000
+frozen_yogurt	10000
+garlic_bread	4000
+gnocchi	8000
+greek_salad	30000
+grilled_cheese_sandwich	12000
+grilled_salmon	500
+guacamole	10000
+gyoza	10000
+hamburger	15000
+hot_and_sour_soup	6000
+hot_dog	10000
+huevos_rancheros	10000
+hummus	10000
+ice_cream	5000
+lasagna	8000
+lobster_bisque	1000
+lobster_roll_sandwich	1000
+macaroni_and_cheese	700
+macarons	10000
+miso_soup	6000
+mussels	10000
+nachos	10000
+omelette	5000
+onion_rings	10000
+oysters	10000
+pad_thai	10000
+paella	10000
+pancakes	5000
+panna_cotta	10000
+peking_duck	10000
+pho	6000
+pizza	4000
+pork_chop	100000
+poutine	10000
+prime_rib	100000
+pulled_pork_sandwich	12000
+ramen	6000
+ravioli	8000
+red_velvet_cake	5000
+risotto	10000
+samosa	10000
+sashimi	10000
+scallops	1000
+seaweed_salad	30000
+shrimp_and_grits	1000
+spaghetti_bolognese	8000
+spaghetti_carbonara	8000
+spring_rolls	10000
+steak	150000
+strawberry_shortcake	5000
+sushi	1000
+tacos	10000
+takoyaki	10000
+tiramisu	5000
+tuna_tartare	1000
+waffles	5000
+Apple 10	10000
+Apple 11	10000
+Apple 12	10000
+Apple 13	10000
+Apple 14	10000
+Apple 17	10000
+Apple 18	10000
+Apple 19	10000
+Apple 5	10000
+Apple 6	10000
+Apple 7	10000
+Apple 8	10000
+Apple 9	10000
+Apple Braeburn 1	10000
+Apple Core 1	10000
+Apple Crimson Snow 1	10000
+Apple Golden 1	10000
+Apple Golden 2	10000
+Apple Golden 3	10000
+Apple Granny Smith 1	10000
+Apple Pink Lady 1	10000
+Apple Red 1	10000
+Apple Red 2	10000
+Apple Red 3	10000
+Apple Red Delicious 1	10000
+Apple Red Yellow 1	10000
+Apple Red Yellow 2	10000
+Apple Rotten 1	10000
+Apple hit 1	10000
+Apple worm 1	10000
+Apricot 1	10000
+Avocado 1	10000
+Avocado Black 1	10000
+Avocado Green 1	10000
+Avocado ripe 1	10000
+Banana 1	42000
+Banana 3	10000
+Banana 4	10000
+Banana Lady Finger 1	10000
+Banana Red 1	10000
+Beans 1	10000
+Beetroot 1	10000
+Blackberrie 1	10000
+Blackberrie 2	10000
+Blackberrie half rippen 1	10000
+Blackberrie not rippen 1	10000
+Blueberry 1	48000
+Cabbage red 1	10000
+Cabbage white 1	10000
+Cactus fruit 1	10000
+Cactus fruit green 1	10000
+Cactus fruit red 1	10000
+Caju seed 1	10000
+Cantaloupe 1	10000
+Cantaloupe 2	10000
+Carambula 1	10000
+Carrot 1	10000
+Cauliflower 1	10000
+Cherimoya 1	10000
+Cherry 1	10000
+Cherry 2	10000
+Cherry 3	10000
+Cherry 4	10000
+Cherry 5	10000
+Cherry Rainier 1	10000
+Cherry Rainier 2	10000
+Cherry Rainier 3	10000
+Cherry Sour 1	10000
+Cherry Wax Black 1	10000
+Cherry Wax Red 1	10000
+Cherry Wax Red 2	10000
+Cherry Wax Red 3	10000
+Cherry Wax Yellow 1	10000
+Cherry Wax not ripen 1	10000
+Cherry Wax not ripen 2	10000
+Chestnut 1	10000
+Clementine 1	10000
+Cocos 1	10000
+Corn 1	10000
+Corn Husk 1	10000
+Cucumber 1	10000
+Cucumber 10	10000
+Cucumber 11	10000
+Cucumber 3	10000
+Cucumber 4	10000
+Cucumber 5	10000
+Cucumber 7	10000
+Cucumber 9	10000
+Cucumber Ripe 1	10000
+Cucumber Ripe 2	10000
+Dates 1	10000
+Eggplant 1	10000
+Eggplant long 1	10000
+Fig 1	10000
+Ginger Root 1	10000
+Gooseberry 1	50000
+Granadilla 1	10000
+Grape Blue 1	10000
+Grape Pink 1	10000
+Grape White 1	10000
+Grape White 2	10000
+Grape White 3	10000
+Grape White 4	10000
+Grapefruit Pink 1	10000
+Grapefruit White 1	10000
+Guava 1	10000
+Hazelnut 1	10000
+Huckleberry 1	50000
+Kaki 1	10000
+Kiwi 1	10000
+Kohlrabi 1	10000
+Kumquats 1	10000
+Lemon 1	10000
+Lemon Meyer 1	10000
+Limes 1	10000
+Lychee 1	10000
+Mandarine 1	10000
+Mango 1	10000
+Mango Red 1	10000
+Mangostan 1	10000
+Maracuja 1	10000
+Melon Piel de Sapo 1	10000
+Mulberry 1	50000
+Nectarine 1	10000
+Nectarine Flat 1	10000
+Nut Forest 1	10000
+Nut Pecan 1	10000
+Onion Red 1	10000
+Onion Red Peeled 1	10000
+Onion White 1	10000
+Orange 1	10000
+Papaya 1	10000
+Passion Fruit 1	10000
+Peach 1	10000
+Peach 2	10000
+Peach Flat 1	10000
+Pear 1	10000
+Pear 2	10000
+Pear 3	10000
+Pear Abate 1	10000
+Pear Forelle 1	10000
+Pear Kaiser 1	10000
+Pear Monster 1	10000
+Pear Red 1	10000
+Pear Stone 1	10000
+Pear Williams 1	10000
+Pepino 1	10000
+Pepper Green 1	10000
+Pepper Orange 1	10000
+Pepper Red 1	10000
+Pepper Yellow 1	10000
+Physalis 1	10000
+Physalis with Husk 1	10000
+Pineapple 1	50000
+Pineapple Mini 1	50000
+Pistachio 1	10000
+Pitahaya Red 1	10000
+Plum 1	10000
+Plum 2	10000
+Plum 3	10000
+Pomegranate 1	10000
+Pomelo Sweetie 1	10000
+Potato Red 1	10000
+Potato Red Washed 1	10000
+Potato Sweet 1	10000
+Potato White 1	10000
+Quince 1	10000
+Quince 2	10000
+Quince 3	10000
+Quince 4	10000
+Rambutan 1	10000
+Raspberry 1	50000
+Redcurrant 1	10000
+Salak 1	10000
+Strawberry 1	50000
+Strawberry Wedge 1	50000
+Tamarillo 1	10000
+Tangelo 1	10000
+Tomato 1	10000
+Tomato 10	10000
+Tomato 2	10000
+Tomato 3	10000
+Tomato 4	10000
+Tomato 5	10000
+Tomato 7	10000
+Tomato 8	43000
+Tomato 9	10000
+Tomato Cherry Maroon 1	10000
+Tomato Cherry Orange 1	10000
+Tomato Cherry Red 1	10000
+Tomato Cherry Red 2	10000
+Tomato Cherry Yellow 1	10000
+Tomato Heart 1	10000
+Tomato Maroon 1	10000
+Tomato Maroon 2	10000
+Tomato Yellow 1	10000
+Tomato not Ripen 1	10000
+Walnut 1	10000
+Watermelon 1	10000
+Zucchini 1	10000
+Zucchini dark 1	10000

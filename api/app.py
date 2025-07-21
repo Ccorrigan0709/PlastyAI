@@ -8,6 +8,18 @@ import io
 import base64
 import os
 import logging
+import sys
+
+# Add the ml directory to the path so we can import the plasticizer mapping
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ml'))
+
+# Import the real plasticizer mapping
+try:
+    from plasticizer_mapping import plasticizer_map
+    print("Successfully loaded real plasticizer data")
+except ImportError:
+    print("Warning: Could not load plasticizer mapping, using default values")
+    plasticizer_map = {'default': 0}
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React Native app
@@ -51,18 +63,36 @@ def load_model():
         return False
 
 def preprocess_image(image_data):
-    """
-    Scale RGB to 0-1 float, nothing else.
-    """
+    """Preprocess image for model input using ImageNet normalization"""
     try:
+        # Decode base64 image
         image_bytes = base64.b64decode(image_data.split(',')[1] if ',' in image_data else image_data)
-        img = Image.open(io.BytesIO(image_bytes)).convert('RGB').resize((224, 224))
-
-        arr = np.asarray(img, dtype=np.float32) / 255.0     # ★ ONLY this line ★
-        arr = np.expand_dims(arr, 0)
-        return arr
+        image = Image.open(io.BytesIO(image_bytes))
+        
+        # Convert to RGB if needed
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        
+        # Resize to model input size
+        image = image.resize((224, 224))
+        
+        # Convert to numpy array
+        image_array = np.array(image, dtype=np.float32)
+        
+        # ImageNet normalization (mean/std)
+        imagenet_mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+        imagenet_std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+        
+        image_array = image_array / 255.0
+        image_array = (image_array - imagenet_mean) / imagenet_std
+        image_array = image_array.astype(np.float32)
+        
+        # Add batch dimension
+        image_array = np.expand_dims(image_array, axis=0)
+        
+        return image_array
     except Exception as e:
-        logger.error(f"Preprocess error: {e}")
+        logger.error(f"Error preprocessing image: {str(e)}")
         return None
 
 def predict_food(image_array):
@@ -116,13 +146,17 @@ def predict_food(image_array):
         logger.error(f"Error during prediction: {str(e)}")
         return None
 
+# Real plasticizer data from the updated dataset
+# The plasticizer_map is now imported from ml/plasticizer_mapping.py
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
     return jsonify({
         'status': 'healthy',
         'model_loaded': model is not None,
-        'labels_count': len(labels)
+        'labels_count': len(labels),
+        'plasticizer_data_loaded': 'plasticizer_map' in globals()
     })
 
 @app.route('/predict', methods=['POST'])
@@ -142,11 +176,11 @@ def predict():
         
         # Preprocess image using ImageNet normalization
         image_array = preprocess_image(image_data)
+        if image_array is None:
+            return jsonify({'error': 'Failed to preprocess image'}), 400
         print("min / max after preprocessing:", image_array.min(), image_array.max())
         print("dtype :", image_array.dtype)
         print("shape :", image_array.shape)
-        if image_array is None:
-            return jsonify({'error': 'Failed to preprocess image'}), 400
         
         # Run prediction
         predictions = predict_food(image_array)
@@ -156,12 +190,16 @@ def predict():
         # Get top prediction
         top_prediction = predictions[0]
         
+        # Get plasticizer count for the predicted label (in nanograms per serving)
+        plasticizer_count = plasticizer_map.get(top_prediction['label'], plasticizer_map.get('default', 0))
+        
         # Determine if microplastics are likely present
         microplastics_detected = detect_microplastics(image_array, top_prediction)
         
         return jsonify({
             'predictions': predictions,
             'top_prediction': top_prediction,
+            'plasticizer_count': plasticizer_count,  # Real data in ng/serving
             'microplastics_detected': microplastics_detected,
             'confidence': top_prediction['confidence'],
             'model_info': {

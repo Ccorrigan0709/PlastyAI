@@ -4,6 +4,7 @@
 .DS_Store
 __pycache__/
 .ipynb_checkpoints/
+New_Model/
 
 ########################################
 #  Python virtual-envs / Pipenv / Poetry

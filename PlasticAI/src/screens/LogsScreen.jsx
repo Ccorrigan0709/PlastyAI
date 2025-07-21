@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,64 +6,56 @@ import {
   FlatList,
   TouchableOpacity,
   SafeAreaView,
+  RefreshControl,
 } from 'react-native';
+import { StorageService } from '../services/storage';
 
 const LogsScreen = ({ navigation }) => {
-  // Mock data for demonstration - in a real app this would come from storage/database
-  const [foodLogs, setFoodLogs] = React.useState([
-    {
-      id: '1',
-      foodItem: 'Salmon Fillet',
-      date: '2024-01-15',
-      time: '12:30 PM',
-      microplasticsCount: 3,
-      status: 'analyzed',
-    },
-    {
-      id: '2',
-      foodItem: 'Tuna Sashimi',
-      date: '2024-01-14',
-      time: '7:45 PM',
-      microplasticsCount: 7,
-      status: 'analyzed',
-    },
-    {
-      id: '3',
-      foodItem: 'Grilled Chicken',
-      date: '2024-01-14',
-      time: '1:15 PM',
-      microplasticsCount: 0,
-      status: 'analyzed',
-    },
-    {
-      id: '4',
-      foodItem: 'Sea Bass',
-      date: '2024-01-13',
-      time: '6:20 PM',
-      microplasticsCount: 5,
-      status: 'analyzed',
-    },
-    {
-      id: '5',
-      foodItem: 'Shrimp Salad',
-      date: '2024-01-12',
-      time: '12:00 PM',
-      microplasticsCount: 12,
-      status: 'analyzed',
-    },
-  ]);
+  const [foodLogs, setFoodLogs] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Load food logs from storage
+  const loadFoodLogs = async () => {
+    try {
+      const logs = await StorageService.getFoodLogs();
+      setFoodLogs(logs);
+    } catch (error) {
+      console.error('Error loading food logs:', error);
+    }
+  };
+
+  // Refresh logs (pull to refresh)
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadFoodLogs();
+    setRefreshing(false);
+  };
+
+  // Load logs when component mounts
+  useEffect(() => {
+    loadFoodLogs();
+  }, []);
+
+  // Reload logs when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadFoodLogs();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const getMicroplasticsColor = (count) => {
     if (count === 0) return '#34C759'; // Green for no microplastics
-    if (count <= 3) return '#FF9500'; // Orange for low count
-    if (count <= 7) return '#FF6B35'; // Red-orange for medium count
+    if (count <= 10000) return '#FF9500'; // Orange for low count
+    if (count <= 50000) return '#FF6B35'; // Red-orange for medium count
     return '#FF3B30'; // Red for high count
   };
 
   const getMicroplasticsLevel = (count) => {
     if (count === 0) return 'Clean';
-    if (count <= 3) return 'Low';
-    if (count <= 7) return 'Medium';
+    if (count <= 10000) return 'Low';
+    if (count <= 50000) return 'Medium';
     return 'High';
   };
 
@@ -78,9 +70,9 @@ const LogsScreen = ({ navigation }) => {
         <View style={styles.rightSection}>
           <View style={[
             styles.countBadge,
-            { backgroundColor: getMicroplasticsColor(item.microplasticsCount) }
+            { backgroundColor: getMicroplasticsColor(item.plasticizerCount || item.microplasticsCount) }
           ]}>
-            <Text style={styles.countText}>{item.microplasticsCount}</Text>
+            <Text style={styles.countText}>{(item.plasticizerCount || item.microplasticsCount).toLocaleString()}</Text>
           </View>
           <Text style={styles.chevron}>›</Text>
         </View>
@@ -90,16 +82,16 @@ const LogsScreen = ({ navigation }) => {
         <Text style={styles.dateTime}>{item.date} at {item.time}</Text>
         <Text style={[
           styles.levelText,
-          { color: getMicroplasticsColor(item.microplasticsCount) }
+          { color: getMicroplasticsColor(item.plasticizerCount || item.microplasticsCount) }
         ]}>
-          {getMicroplasticsLevel(item.microplasticsCount)} contamination
+          {getMicroplasticsLevel(item.plasticizerCount || item.microplasticsCount)} contamination
         </Text>
       </View>
       
       <Text style={styles.microplasticsText}>
-        {item.microplasticsCount === 0 
-          ? 'No microplastics detected' 
-          : `${item.microplasticsCount} microplastic particle${item.microplasticsCount > 1 ? 's' : ''} found`
+        {(item.plasticizerCount || item.microplasticsCount) === 0 
+          ? 'No plasticizers detected' 
+          : `${(item.plasticizerCount || item.microplasticsCount).toLocaleString()} ng/serving`
         }
       </Text>
       
@@ -107,8 +99,8 @@ const LogsScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  const totalMicroplastics = foodLogs.reduce((sum, log) => sum + log.microplasticsCount, 0);
-  const averageMicroplastics = foodLogs.length > 0 ? (totalMicroplastics / foodLogs.length).toFixed(1) : 0;
+  const totalMicroplastics = foodLogs.reduce((sum, log) => sum + (log.plasticizerCount || log.microplasticsCount), 0);
+  const averageMicroplastics = foodLogs.length > 0 ? (totalMicroplastics / foodLogs.length).toFixed(0) : 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -121,12 +113,12 @@ const LogsScreen = ({ navigation }) => {
             <Text style={styles.statLabel}>Total Scans</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{totalMicroplastics}</Text>
-            <Text style={styles.statLabel}>Total Particles</Text>
+            <Text style={styles.statNumber}>{totalMicroplastics.toLocaleString()}</Text>
+            <Text style={styles.statLabel}>Total ng/serving</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{averageMicroplastics}</Text>
-            <Text style={styles.statLabel}>Avg per Scan</Text>
+            <Text style={styles.statLabel}>Avg ng/serving</Text>
           </View>
         </View>
       </View>
@@ -137,6 +129,9 @@ const LogsScreen = ({ navigation }) => {
         keyExtractor={(item) => item.id}
         style={styles.list}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No food scans yet</Text>

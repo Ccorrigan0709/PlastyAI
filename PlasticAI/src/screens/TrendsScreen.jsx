@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,73 +8,227 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
+import { StorageService } from '../services/storage';
 
 const { width } = Dimensions.get('window');
 
 const TrendsScreen = ({ navigation }) => {
   const [selectedPeriod, setSelectedPeriod] = useState('Last Week');
+  const [scanData, setScanData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Simulate user's app start date (in a real app, this would come from user data)
-  const userStartDate = new Date('2024-01-15'); // User started 1 week ago
-  const currentDate = new Date('2024-01-22');
-  const daysSinceStart = Math.floor((currentDate - userStartDate) / (1000 * 60 * 60 * 24));
+  // Load scan data from storage
+  useEffect(() => {
+    loadScanData();
+  }, []);
 
-  // All periods are always available to select
-  const availablePeriods = ['Last Week', 'Last Month', 'Last Year', 'Last 5 Years'];
+  // Reload data when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadScanData();
+    });
 
-  // Generate realistic data based on available time
-  const generateRealisticData = (period) => {
-    const dataPoints = {
-      'Last Week': daysSinceStart >= 7 ? [
-        { label: 'Mon', value: 12, date: 'Jan 15' },
-        { label: 'Tue', value: 3, date: 'Jan 16' },
-        { label: 'Wed', value: 8, date: 'Jan 17' },
-        { label: 'Thu', value: 0, date: 'Jan 18' },
-        { label: 'Fri', value: 15, date: 'Jan 19' },
-        { label: 'Sat', value: 5, date: 'Jan 20' },
-        { label: 'Sun', value: 2, date: 'Jan 21' },
-      ] : [],
-      'Last Month': daysSinceStart >= 30 ? [
-        { label: 'Week 1', value: 45, date: 'Dec 25-31' },
-        { label: 'Week 2', value: 32, date: 'Jan 1-7' },
-        { label: 'Week 3', value: 28, date: 'Jan 8-14' },
-        { label: 'Week 4', value: 45, date: 'Jan 15-21' },
-      ] : [],
-      'Last Year': daysSinceStart >= 365 ? [
-        { label: 'Jan', value: 180, date: '2024' },
-        { label: 'Feb', value: 165, date: '2024' },
-        { label: 'Mar', value: 142, date: '2024' },
-        { label: 'Apr', value: 158, date: '2024' },
-        { label: 'May', value: 134, date: '2024' },
-        { label: 'Jun', value: 125, date: '2024' },
-        { label: 'Jul', value: 148, date: '2024' },
-        { label: 'Aug', value: 162, date: '2024' },
-        { label: 'Sep', value: 139, date: '2024' },
-        { label: 'Oct', value: 155, date: '2024' },
-        { label: 'Nov', value: 171, date: '2024' },
-        { label: 'Dec', value: 145, date: '2024' },
-      ] : [],
-      'Last 5 Years': daysSinceStart >= 1825 ? [
-        { label: '2020', value: 1850, date: 'Annual' },
-        { label: '2021', value: 1720, date: 'Annual' },
-        { label: '2022', value: 1580, date: 'Annual' },
-        { label: '2023', value: 1420, date: 'Annual' },
-        { label: '2024', value: 1680, date: 'Annual' },
-      ] : [],
-    };
-    return dataPoints[period] || [];
+    return unsubscribe;
+  }, [navigation]);
+
+  const loadScanData = async () => {
+    try {
+      const logs = await StorageService.getFoodLogs();
+      setScanData(logs);
+    } catch (error) {
+      console.error('Error loading scan data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const trendData = generateRealisticData(selectedPeriod);
-  const maxValue = Math.max(...trendData.map(item => item.value));
-  const minValue = Math.min(...trendData.map(item => item.value));
+  // Generate real data based on actual scan history
+  const generateRealData = (period) => {
+    if (scanData.length === 0) return [];
 
-  // Calculate trend direction
+    const now = new Date();
+    const dataPoints = [];
+
+    switch (period) {
+      case 'Last Week':
+        // Group by day for the last 7 days, with today on the left
+        for (let i = 0; i <= 6; i++) {
+          const date = new Date(now);
+          date.setDate(date.getDate() - (6 - i)); // Start from 6 days ago, end with today
+          const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+          const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+          
+          const dayScans = scanData.filter(scan => {
+            try {
+              // Handle both old format (date + time) and new format (ISO string)
+              let scanDate;
+              if (scan.date.includes('T')) {
+                // New format: ISO string
+                scanDate = new Date(scan.date);
+              } else {
+                // Old format: date + time strings
+                scanDate = new Date(scan.date + ' ' + (scan.time || '00:00'));
+              }
+              return scanDate >= dayStart && scanDate < dayEnd;
+            } catch (error) {
+              console.log('TrendsScreen: Error parsing date for scan:', scan, error);
+              return false;
+            }
+          });
+          
+          const totalPlasticizers = dayScans.reduce((sum, scan) => 
+            sum + (scan.plasticizerCount || scan.microplasticsCount || 0), 0
+          );
+          
+          const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          const dayLabel = dayLabels[date.getDay()];
+          const dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          
+          dataPoints.push({
+            label: dayLabel,
+            value: totalPlasticizers,
+            date: dateLabel,
+            scanCount: dayScans.length
+          });
+        }
+        break;
+
+      case 'Last Month':
+        // Group by week for the last 4 weeks, with current week on the left
+        for (let i = 0; i <= 3; i++) {
+          const weekStart = new Date(now);
+          weekStart.setDate(weekStart.getDate() - (3 - i) * 7);
+          const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+          
+          const weekScans = scanData.filter(scan => {
+            try {
+              // Handle both old format (date + time) and new format (ISO string)
+              let scanDate;
+              if (scan.date.includes('T')) {
+                // New format: ISO string
+                scanDate = new Date(scan.date);
+              } else {
+                // Old format: date + time strings
+                scanDate = new Date(scan.date + ' ' + (scan.time || '00:00'));
+              }
+              return scanDate >= weekStart && scanDate < weekEnd;
+            } catch (error) {
+              console.log('TrendsScreen: Error parsing date for scan:', scan, error);
+              return false;
+            }
+          });
+          
+          const totalPlasticizers = weekScans.reduce((sum, scan) => 
+            sum + (scan.plasticizerCount || scan.microplasticsCount || 0), 0
+          );
+          
+          const weekStartLabel = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          const weekEndLabel = new Date(weekEnd.getTime() - 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          
+          dataPoints.push({
+            label: `Week ${4 - i}`,
+            value: totalPlasticizers,
+            date: `${weekStartLabel}-${weekEndLabel}`,
+            scanCount: weekScans.length
+          });
+        }
+        break;
+
+      case 'Last Year':
+        // Group by month for the last 12 months, with current month on the left
+        for (let i = 0; i <= 11; i++) {
+          const monthStart = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1);
+          const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+          
+          const monthScans = scanData.filter(scan => {
+            try {
+              // Handle both old format (date + time) and new format (ISO string)
+              let scanDate;
+              if (scan.date.includes('T')) {
+                // New format: ISO string
+                scanDate = new Date(scan.date);
+              } else {
+                // Old format: date + time strings
+                scanDate = new Date(scan.date + ' ' + (scan.time || '00:00'));
+              }
+              return scanDate >= monthStart && scanDate < monthEnd;
+            } catch (error) {
+              console.log('TrendsScreen: Error parsing date for scan:', scan, error);
+              return false;
+            }
+          });
+          
+          const totalPlasticizers = monthScans.reduce((sum, scan) => 
+            sum + (scan.plasticizerCount || scan.microplasticsCount || 0), 0
+          );
+          
+          const monthLabel = monthStart.toLocaleDateString('en-US', { month: 'short' });
+          
+          dataPoints.push({
+            label: monthLabel,
+            value: totalPlasticizers,
+            date: monthStart.getFullYear().toString(),
+            scanCount: monthScans.length
+          });
+        }
+        break;
+
+      case 'Last 5 Years':
+        // Group by year for the last 5 years, with current year on the left
+        for (let i = 0; i <= 4; i++) {
+          const yearStart = new Date(now.getFullYear() - (4 - i), 0, 1);
+          const yearEnd = new Date(now.getFullYear() - (4 - i) + 1, 0, 1);
+          
+          const yearScans = scanData.filter(scan => {
+            try {
+              // Handle both old format (date + time) and new format (ISO string)
+              let scanDate;
+              if (scan.date.includes('T')) {
+                // New format: ISO string
+                scanDate = new Date(scan.date);
+              } else {
+                // Old format: date + time strings
+                scanDate = new Date(scan.date + ' ' + (scan.time || '00:00'));
+              }
+              return scanDate >= yearStart && scanDate < yearEnd;
+            } catch (error) {
+              console.log('TrendsScreen: Error parsing date for scan:', scan, error);
+              return false;
+            }
+          });
+          
+          const totalPlasticizers = yearScans.reduce((sum, scan) => 
+            sum + (scan.plasticizerCount || scan.microplasticsCount || 0), 0
+          );
+          
+          dataPoints.push({
+            label: yearStart.getFullYear().toString(),
+            value: totalPlasticizers,
+            date: 'Annual',
+            scanCount: yearScans.length
+          });
+        }
+        break;
+    }
+
+    return dataPoints;
+  };
+
+  const trendData = generateRealData(selectedPeriod);
+  const maxValue = trendData.length > 0 ? Math.max(...trendData.map(item => item.value)) : 0;
+  const minValue = trendData.length > 0 ? Math.min(...trendData.map(item => item.value)) : 0;
+
+  // Calculate trend direction based on real data
   const calculateTrend = () => {
     if (trendData.length < 2) return { direction: 'stable', percentage: 0 };
     
     const firstValue = trendData[0].value;
     const lastValue = trendData[trendData.length - 1].value;
+    
+    if (firstValue === 0) {
+      return lastValue > 0 ? { direction: 'increasing', percentage: 100 } : { direction: 'stable', percentage: 0 };
+    }
+    
     const change = ((lastValue - firstValue) / firstValue) * 100;
     
     if (Math.abs(change) < 5) return { direction: 'stable', percentage: change };
@@ -107,8 +261,26 @@ const TrendsScreen = ({ navigation }) => {
     const chartWidth = width - 100;
     const padding = 40;
 
+    // Show loading state
+    if (loading) {
+      return (
+        <View style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>
+            Microplastics Exposure Trend - {selectedPeriod}
+          </Text>
+          <View style={styles.noDataContainer}>
+            <Text style={styles.noDataIcon}>⏳</Text>
+            <Text style={styles.noDataTitle}>Loading Data...</Text>
+            <Text style={styles.noDataMessage}>
+              Fetching your scan history to generate trends.
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
     // Show insufficient data message if no data available
-    if (trendData.length === 0) {
+    if (trendData.length === 0 || scanData.length === 0) {
       return (
         <View style={styles.chartContainer}>
           <Text style={styles.chartTitle}>
@@ -116,16 +288,12 @@ const TrendsScreen = ({ navigation }) => {
           </Text>
           <View style={styles.noDataContainer}>
             <Text style={styles.noDataIcon}>📊</Text>
-            <Text style={styles.noDataTitle}>Not Enough Data</Text>
+            <Text style={styles.noDataTitle}>No Data Available</Text>
             <Text style={styles.noDataMessage}>
-              {selectedPeriod === 'Last Week' && daysSinceStart < 7 && 
-                `Keep scanning food for ${7 - daysSinceStart} more days to see weekly trends.`}
-              {selectedPeriod === 'Last Month' && daysSinceStart < 30 && 
-                `Keep scanning food for ${30 - daysSinceStart} more days to see monthly trends.`}
-              {selectedPeriod === 'Last Year' && daysSinceStart < 365 && 
-                `Keep scanning food for ${365 - daysSinceStart} more days to see yearly trends.`}
-              {selectedPeriod === 'Last 5 Years' && daysSinceStart < 1825 && 
-                `Keep scanning food for ${Math.ceil((1825 - daysSinceStart) / 365)} more years to see 5-year trends.`}
+              {scanData.length === 0 
+                ? "You haven't scanned any food items yet. Start scanning to see your exposure trends!"
+                : `You need more scan data to see ${selectedPeriod.toLowerCase()} trends. Keep scanning food items!`
+              }
             </Text>
             <Text style={styles.noDataHint}>
               💡 Scan more food items to unlock detailed trend analysis!
@@ -145,10 +313,10 @@ const TrendsScreen = ({ navigation }) => {
         <View style={styles.chartWrapper}>
           {/* Y-axis labels */}
           <View style={styles.yAxisContainer}>
-            <Text style={styles.yAxisLabel}>{maxValue}</Text>
-            <Text style={styles.yAxisLabel}>{Math.round(maxValue * 0.75)}</Text>
-            <Text style={styles.yAxisLabel}>{Math.round(maxValue * 0.5)}</Text>
-            <Text style={styles.yAxisLabel}>{Math.round(maxValue * 0.25)}</Text>
+            <Text style={styles.yAxisLabel}>{maxValue.toLocaleString()}</Text>
+            <Text style={styles.yAxisLabel}>{Math.round(maxValue * 0.75).toLocaleString()}</Text>
+            <Text style={styles.yAxisLabel}>{Math.round(maxValue * 0.5).toLocaleString()}</Text>
+            <Text style={styles.yAxisLabel}>{Math.round(maxValue * 0.25).toLocaleString()}</Text>
             <Text style={styles.yAxisLabel}>0</Text>
           </View>
           
@@ -209,6 +377,9 @@ const TrendsScreen = ({ navigation }) => {
                   >
                     <Text style={styles.xAxisLabel}>{item.label}</Text>
                     <Text style={styles.xAxisDate}>{item.date}</Text>
+                    {item.scanCount > 0 && (
+                      <Text style={styles.scanCount}>{item.scanCount} scans</Text>
+                    )}
                   </View>
                 );
               })}
@@ -220,30 +391,57 @@ const TrendsScreen = ({ navigation }) => {
   };
 
   const renderStats = () => {
+    if (trendData.length === 0) {
+      return (
+        <View style={styles.statsContainer}>
+          <Text style={styles.statsTitle}>Period Statistics</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>0</Text>
+              <Text style={styles.statLabel}>Total ng/serving</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>0</Text>
+              <Text style={styles.statLabel}>Average</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>0</Text>
+              <Text style={styles.statLabel}>Scans</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>0</Text>
+              <Text style={styles.statLabel}>Days</Text>
+            </View>
+          </View>
+        </View>
+      );
+    }
+
     const total = trendData.reduce((sum, item) => sum + item.value, 0);
-    const average = total / trendData.length;
+    const average = trendData.length > 0 ? total / trendData.length : 0;
     const highest = Math.max(...trendData.map(item => item.value));
     const lowest = Math.min(...trendData.map(item => item.value));
+    const totalScans = trendData.reduce((sum, item) => sum + item.scanCount, 0);
 
     return (
       <View style={styles.statsContainer}>
         <Text style={styles.statsTitle}>Period Statistics</Text>
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{total}</Text>
-            <Text style={styles.statLabel}>Total Particles</Text>
+            <Text style={styles.statNumber}>{total.toLocaleString()}</Text>
+            <Text style={styles.statLabel}>Total ng/serving</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{average.toFixed(1)}</Text>
+            <Text style={styles.statNumber}>{average.toFixed(0)}</Text>
             <Text style={styles.statLabel}>Average</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={[styles.statNumber, { color: '#FF3B30' }]}>{highest}</Text>
+            <Text style={[styles.statNumber, { color: '#FF3B30' }]}>{highest.toLocaleString()}</Text>
             <Text style={styles.statLabel}>Highest</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={[styles.statNumber, { color: '#34C759' }]}>{lowest}</Text>
-            <Text style={styles.statLabel}>Lowest</Text>
+            <Text style={[styles.statNumber, { color: '#34C759' }]}>{totalScans}</Text>
+            <Text style={styles.statLabel}>Total Scans</Text>
           </View>
         </View>
       </View>
@@ -269,7 +467,7 @@ const TrendsScreen = ({ navigation }) => {
         {/* Period Selector */}
         <View style={styles.periodSelector}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {availablePeriods.map((period) => (
+            {['Last Week', 'Last Month', 'Last Year', 'Last 5 Years'].map((period) => (
               <TouchableOpacity
                 key={period}
                 style={[
@@ -314,33 +512,48 @@ const TrendsScreen = ({ navigation }) => {
         <View style={styles.progressContainer}>
           <Text style={styles.progressTitle}>📈 Your Progress</Text>
           <Text style={styles.progressDays}>
-            You've been tracking for {daysSinceStart} days
+            {scanData.length === 0 
+              ? "Start scanning to track your progress!"
+              : `You've scanned ${scanData.length} food items`
+            }
           </Text>
+          
+          {scanData.length > 0 && (
+            <Text style={styles.progressSubtext}>
+              {(() => {
+                const uniqueDays = new Set(scanData.map(scan => scan.date)).size;
+                const totalPlasticizers = scanData.reduce((sum, scan) => 
+                  sum + (scan.plasticizerCount || scan.microplasticsCount || 0), 0
+                );
+                return `Across ${uniqueDays} days • Total exposure: ${totalPlasticizers.toLocaleString()} ng/serving`;
+              })()}
+            </Text>
+          )}
           
           <View style={styles.milestonesContainer}>
             <View style={styles.milestoneGrid}>
-              <View style={[styles.milestone, daysSinceStart >= 7 ? styles.milestoneUnlocked : styles.milestoneLocked]}>
-                <Text style={styles.milestoneIcon}>{daysSinceStart >= 7 ? '✅' : '🔒'}</Text>
+              <View style={[styles.milestone, scanData.length >= 7 ? styles.milestoneUnlocked : styles.milestoneLocked]}>
+                <Text style={styles.milestoneIcon}>{scanData.length >= 7 ? '✅' : '🔒'}</Text>
                 <Text style={styles.milestoneText}>Weekly Trends</Text>
-                <Text style={styles.milestoneSubtext}>{daysSinceStart >= 7 ? 'Unlocked!' : `${7 - daysSinceStart} days left`}</Text>
+                <Text style={styles.milestoneSubtext}>{scanData.length >= 7 ? 'Unlocked!' : `${7 - scanData.length} scans left`}</Text>
               </View>
               
-              <View style={[styles.milestone, daysSinceStart >= 30 ? styles.milestoneUnlocked : styles.milestoneLocked]}>
-                <Text style={styles.milestoneIcon}>{daysSinceStart >= 30 ? '✅' : '🔒'}</Text>
+              <View style={[styles.milestone, scanData.length >= 30 ? styles.milestoneUnlocked : styles.milestoneLocked]}>
+                <Text style={styles.milestoneIcon}>{scanData.length >= 30 ? '✅' : '🔒'}</Text>
                 <Text style={styles.milestoneText}>Monthly Trends</Text>
-                <Text style={styles.milestoneSubtext}>{daysSinceStart >= 30 ? 'Unlocked!' : `${30 - daysSinceStart} days left`}</Text>
+                <Text style={styles.milestoneSubtext}>{scanData.length >= 30 ? 'Unlocked!' : `${30 - scanData.length} scans left`}</Text>
               </View>
               
-              <View style={[styles.milestone, daysSinceStart >= 365 ? styles.milestoneUnlocked : styles.milestoneLocked]}>
-                <Text style={styles.milestoneIcon}>{daysSinceStart >= 365 ? '✅' : '🔒'}</Text>
+              <View style={[styles.milestone, scanData.length >= 100 ? styles.milestoneUnlocked : styles.milestoneLocked]}>
+                <Text style={styles.milestoneIcon}>{scanData.length >= 100 ? '✅' : '🔒'}</Text>
+                <Text style={styles.milestoneText}>Detailed Trends</Text>
+                <Text style={styles.milestoneSubtext}>{scanData.length >= 100 ? 'Unlocked!' : `${100 - scanData.length} scans left`}</Text>
+              </View>
+              
+              <View style={[styles.milestone, scanData.length >= 365 ? styles.milestoneUnlocked : styles.milestoneLocked]}>
+                <Text style={styles.milestoneIcon}>{scanData.length >= 365 ? '✅' : '🔒'}</Text>
                 <Text style={styles.milestoneText}>Yearly Trends</Text>
-                <Text style={styles.milestoneSubtext}>{daysSinceStart >= 365 ? 'Unlocked!' : `${365 - daysSinceStart} days left`}</Text>
-              </View>
-              
-              <View style={[styles.milestone, daysSinceStart >= 1825 ? styles.milestoneUnlocked : styles.milestoneLocked]}>
-                <Text style={styles.milestoneIcon}>{daysSinceStart >= 1825 ? '✅' : '🔒'}</Text>
-                <Text style={styles.milestoneText}>5-Year Trends</Text>
-                <Text style={styles.milestoneSubtext}>{daysSinceStart >= 1825 ? 'Unlocked!' : `${Math.ceil((1825 - daysSinceStart) / 365)} years left`}</Text>
+                <Text style={styles.milestoneSubtext}>{scanData.length >= 365 ? 'Unlocked!' : `${365 - scanData.length} scans left`}</Text>
               </View>
             </View>
           </View>
@@ -349,23 +562,39 @@ const TrendsScreen = ({ navigation }) => {
         {/* Insights */}
         <View style={styles.insightsContainer}>
           <Text style={styles.insightsTitle}>💡 Insights</Text>
-          <View style={styles.insightItem}>
-            <Text style={styles.insightText}>
-              • Your exposure is {trend.direction === 'decreasing' ? 'improving' : trend.direction === 'increasing' ? 'worsening' : 'stable'} compared to the start of this period
-            </Text>
-          </View>
-          <View style={styles.insightItem}>
-            <Text style={styles.insightText}>
-              • {selectedPeriod === 'Last Week' ? 'Consider meal planning to reduce high-exposure days' : 
-                 selectedPeriod === 'Last Month' ? 'Look for patterns in weekly consumption' :
-                 'Long-term trends help identify lifestyle changes'}
-            </Text>
-          </View>
-          <View style={styles.insightItem}>
-            <Text style={styles.insightText}>
-              • Focus on reducing consumption of high-contamination foods like shellfish and large fish
-            </Text>
-          </View>
+          {scanData.length === 0 ? (
+            <View style={styles.insightItem}>
+              <Text style={styles.insightText}>
+                • Start scanning your food to see personalized insights about your microplastics exposure
+              </Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.insightItem}>
+                <Text style={styles.insightText}>
+                  • Your exposure is {trend.direction === 'decreasing' ? 'improving' : trend.direction === 'increasing' ? 'worsening' : 'stable'} compared to the start of this period
+                </Text>
+              </View>
+              <View style={styles.insightItem}>
+                <Text style={styles.insightText}>
+                  • {(() => {
+                    const avgPerScan = scanData.length > 0 ? 
+                      scanData.reduce((sum, scan) => sum + (scan.plasticizerCount || scan.microplasticsCount || 0), 0) / scanData.length : 0;
+                    if (avgPerScan > 50000) return 'Your average exposure per scan is high. Consider choosing lower-contamination alternatives.';
+                    if (avgPerScan > 20000) return 'Your average exposure is moderate. Focus on reducing high-exposure foods.';
+                    return 'Your average exposure is relatively low. Keep up the good choices!';
+                  })()}
+                </Text>
+              </View>
+              <View style={styles.insightItem}>
+                <Text style={styles.insightText}>
+                  • {selectedPeriod === 'Last Week' ? 'Consider meal planning to reduce high-exposure days' : 
+                     selectedPeriod === 'Last Month' ? 'Look for patterns in weekly consumption' :
+                     'Long-term trends help identify lifestyle changes'}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -538,6 +767,12 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 2,
   },
+  scanCount: {
+    fontSize: 10,
+    color: '#666',
+    marginTop: 2,
+    textAlign: 'center',
+  },
   statsContainer: {
     backgroundColor: '#fff',
     margin: 15,
@@ -664,6 +899,12 @@ const styles = StyleSheet.create({
   progressDays: {
     fontSize: 14,
     color: '#666',
+    textAlign: 'center',
+  },
+  progressSubtext: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 5,
     textAlign: 'center',
   },
   milestonesContainer: {
